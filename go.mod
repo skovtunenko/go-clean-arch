@@ -1,8 +1,8 @@
 module github.com/bxcodec/go-clean-arch/v2
 
 require (
+	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/bxcodec/faker v1.5.0
-	github.com/bxcodec/go-clean-arch v2.0.0+incompatible
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.0
@@ -17,6 +17,8 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4 // indirect
 	golang.org/x/crypto v0.0.0-20181030022821-bc7917b19d8f // indirect
+	google.golang.org/appengine v1.3.0 // indirect
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v9 v9.21.1
 )
