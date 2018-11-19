@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"time"
 
-	httpDeliver "github.com/bxcodec/go-clean-arch/v2/article/delivery/http"
+	httpDelivery "github.com/bxcodec/go-clean-arch/v2/article/delivery/http"
 	articleRepository "github.com/bxcodec/go-clean-arch/v2/article/repository"
 	articleUsecase "github.com/bxcodec/go-clean-arch/v2/article/usecase"
 	authorRepository "github.com/bxcodec/go-clean-arch/v2/author/repository"
@@ -51,11 +51,11 @@ func main() {
 	middL := middleware.InitMiddleware()
 	e.Use(middL.CORS)
 	authorRepo := authorRepository.NewMysqlAuthorRepository(dbConn)
-	ar := articleRepository.NewMysqlArticleRepository(dbConn)
+	articleRepo := articleRepository.NewMysqlArticleRepository(dbConn)
 
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
-	au := articleUsecase.NewArticleUsecase(ar, authorRepo, timeoutContext)
-	httpDeliver.NewArticleHttpHandler(e, au)
+	au := articleUsecase.NewArticleUsecase(articleRepo, authorRepo, timeoutContext)
+	httpDelivery.NewArticleHttpHandler(e, au)
 
 	if err := e.Start(viper.GetString("server.address")); err != nil {
 		log.Fatalf("echo start: %+v", err)
