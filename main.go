@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"os"
 	"time"
 
 	httpDeliver "github.com/bxcodec/go-clean-arch/v2/article/delivery/http"
-	articleRepo "github.com/bxcodec/go-clean-arch/v2/article/repository"
-	articleUcase "github.com/bxcodec/go-clean-arch/v2/article/usecase"
-	_authorRepo "github.com/bxcodec/go-clean-arch/v2/author/repository"
+	articleRepository "github.com/bxcodec/go-clean-arch/v2/article/repository"
+	articleUsecase "github.com/bxcodec/go-clean-arch/v2/article/usecase"
+	authorRepository "github.com/bxcodec/go-clean-arch/v2/author/repository"
 	"github.com/bxcodec/go-clean-arch/v2/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo"
@@ -27,43 +26,53 @@ func init() {
 	}
 
 	if viper.GetBool(`debug`) {
-		fmt.Println("Service RUN on DEBUG mode")
+		fmt.Println("Service RUN in DEBUG mode")
 	}
-
 }
 
 func main() {
-
-	dbHost := viper.GetString(`database.host`)
-	dbPort := viper.GetString(`database.port`)
-	dbUser := viper.GetString(`database.user`)
-	dbPass := viper.GetString(`database.pass`)
-	dbName := viper.GetString(`database.name`)
-	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
-	val := url.Values{}
-	val.Add("parseTime", "1")
-	val.Add("loc", "Asia/Jakarta")
-	dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
+	dsn := buildDataSourceName()
 	dbConn, err := sql.Open(`mysql`, dsn)
 	if err != nil && viper.GetBool("debug") {
 		fmt.Println(err)
 	}
 	err = dbConn.Ping()
 	if err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+		log.Fatalf("unable to ping the MySQL db: %+v", err)
 	}
 
-	defer dbConn.Close()
+	defer func() {
+		if err := dbConn.Close(); err != nil {
+			log.Fatalf("unable to close MySQL: %+v", err)
+		}
+
+	}()
 	e := echo.New()
 	middL := middleware.InitMiddleware()
 	e.Use(middL.CORS)
-	authorRepo := _authorRepo.NewMysqlAuthorRepository(dbConn)
-	ar := articleRepo.NewMysqlArticleRepository(dbConn)
+	authorRepo := authorRepository.NewMysqlAuthorRepository(dbConn)
+	ar := articleRepository.NewMysqlArticleRepository(dbConn)
 
 	timeoutContext := time.Duration(viper.GetInt("context.timeout")) * time.Second
-	au := articleUcase.NewArticleUsecase(ar, authorRepo, timeoutContext)
+	au := articleUsecase.NewArticleUsecase(ar, authorRepo, timeoutContext)
 	httpDeliver.NewArticleHttpHandler(e, au)
 
-	e.Start(viper.GetString("server.address"))
+	if err := e.Start(viper.GetString("server.address")); err != nil {
+		log.Fatalf("echo start: %+v", err)
+	}
+}
+
+func buildDataSourceName() string {
+	dbHost := viper.GetString(`database.host`)
+	dbPort := viper.GetString(`database.port`)
+	dbUser := viper.GetString(`database.user`)
+	dbPass := viper.GetString(`database.pass`)
+	dbName := viper.GetString(`database.name`)
+	connection := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", dbUser, dbPass, dbHost, dbPort, dbName)
+
+	val := url.Values{}
+	val.Add("parseTime", "1")
+	val.Add("loc", "Asia/Jakarta")
+	dsn := fmt.Sprintf("%s?%s", connection, val.Encode())
+	return dsn
 }
